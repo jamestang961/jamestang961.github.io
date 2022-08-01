@@ -1,0 +1,894 @@
+
+// 功能:声明通用方法
+
+function toLowerCase(s) {
+	return (s || "").toLowerCase()
+}
+
+function toUpperCase(s) {
+	return (s || "").toUpperCase()
+}
+
+function getSexDesc(sex) {
+	return "M" == (sex = (sex || "").trim().toUpperCase()) ? lng("男", "Macho", "male") : "F" == sex ? lng("女", "Feminino",
+		"Female") : sex
+}
+juicer.register("convertDate", convertDate), juicer.register("formatDate", formatDate), juicer.register(
+	"getExtraFieldValue", getExtraFieldValue), juicer.register("getRemark", getRemark), juicer.register("getTemplateLang",
+	getTemplateLang), juicer.register("getMsg", getMsg), juicer.register("toUpperCase", toUpperCase), juicer.register(
+	"toLowerCase", toLowerCase), juicer.register("getSexDesc", getSexDesc);
+var _curExtraField = {};
+
+function getExtraFieldValue(key, s, id) {
+	if (_curExtraField.id !== id) {
+		(_curExtraField = {}).id = id;
+		var a = (s = s || "").split("&");
+		for (k = 0; k < a.length; k++) {
+			var b = a[k].split("=");
+			_curExtraField[(b[0] || "").toLowerCase()] = b[1]
+		}
+	}
+	return _curExtraField[key] || ""
+}
+var _curRemark = {};
+
+function getRemark(key, s, id) {
+	if (_curRemark.id !== id) {
+		(_curRemark = {}).id = id;
+		var a = (s = s || "").split("&");
+		for (k = 0; k < a.length; k++) {
+			var b = a[k].split("=");
+			_curRemark[(b[0] || "").toLowerCase()] = b[1]
+		}
+	}
+	return _curRemark[key] || ""
+}
+
+function getCurDataById(id) {
+	var data = getCurPageData(),
+		foundata;
+	for (k = 0; k < data.rows.length; k++)
+		if (id == data.rows[k].id) {
+			foundata = data.rows[k];
+			break
+		} return foundata
+}
+
+function formatDate(date) {
+	var year = date.getFullYear(),
+		month = date.getMonth() + 1,
+		day = date.getDate(),
+		hour = date.getHours(),
+		minute = date.getMinutes(),
+		second = date.getSeconds(),
+		hourFormatted, minuteFormatted, morning;
+	return month + "/" + day + "/" + year + " " + (hour % 12 || 12) + ":" + (minute < 10 ? "0" + minute : minute) + (hour <
+		12 ? "am" : "pm")
+}
+
+function setDatepicker(c, lang) {
+	c && c.find("[data-date-format]").each((function() {
+		var dateformat = $.trim($(this).attr("data-date-format"));
+		if ("" !== dateformat) {
+			var isdaterange = $(this).hasAttribute("daterange"),
+				daterangestart = $(this).attr("daterangestart"),
+				daterangeend = $(this).attr("daterangeend"),
+				dlang = "zh-TW";
+			"en" == getAppConfig().lang ? dlang = "en-GB" : "pt" == getAppConfig().lang && (dlang = "pt"), $(this).daterangepicker({
+				language: dlang,
+				minDate: "dateToday",
+				changeMonth: !0,
+				dateFormat: dateformat
+			})
+		}
+	}))
+}
+
+function getTemplateLang() {
+	return "ch" == getAppConfig().lang ? "" : "_" + getAppConfig().lang
+}
+
+function getMsg(options) {
+	var config = {
+		mtype: "",
+		msg: ""
+	};
+	"object" == typeof options ? $.extend(config, options) : config.mtype = options;
+	var lg = getTemplateLang();
+	return juicer(getAppTemplate()["uc_msg" + lg], config) || ""
+}
+
+function alertMsg(options, success) {
+	var txt = getMsg(options) || "";
+	try {
+		try {
+			document.activeElement.blur()
+		} catch(e) {}
+		return alertDialog({
+			closebutton: !1,
+			content: "<div style='padding:10px;'>" + txt + "</div>"
+		}, success)
+	} catch(e) {
+		return logme(e.message), alert(txt.replace(/\<br\>/g, "\n").RemoveHtmlTags()), runScript(success, txt), null
+	}
+}
+
+function showTips(x, y, msg, autohide) {
+	x = parseInt(x) || 0, y = parseInt(y) || 0, $("#__mytips").remove();
+	var s =
+		"<div id='__mytips' class='alert alert-danger pos-left-top' style='z-index:100;left:${x}px;top:${y}px;opacity:0.85'>$${msg}</div>";
+	$("body").append(juicer(s, {
+		msg: msg,
+		x: x,
+		y: y
+	})), autohide && setTimeout((function() {
+		hideTips()
+	}), 800)
+}
+
+function hideTips() {
+	$("#__mytips").fadeOut((function() {
+		$(this).remove()
+	}))
+}
+
+function mPopover(options) {
+	if ("close" == options) return $("#_popoverbox").trigger("close"), !1;
+	var config = {
+		left: 0,
+		top: 0,
+		right: 0,
+		bottom: 0,
+		width: 350,
+		height: 200,
+		scroller: "scroller scrolly",
+		blockui: !1,
+		slideUp: !1,
+		slideDown: !1,
+		slideLeft: !1,
+		slideRight: !1,
+		onClose: function() {},
+		onShow: function() {}
+	};
+	$.extend(config, options);
+	var mh = parseInt((config.height || "").toString().replace("px", "")) || 0,
+		mw = parseInt((config.width || "").toString().replace("px", "")) || 0;
+	config.slideUp ? config.bottom = -mh - 50 : config.slideDown ? config.top = -mh - 50 : config.slideLeft ? config.left = -
+		mw - 50 : config.slideRight && (config.right = -mw - 50), $(".popoverbox").trigger("close"), $(".popoverbox").remove();
+	var tpl =
+		"<div id='_popoverbox' class='popoverbox bordered bordered-dark bg-white pos-top filter-shadow-lg' style='z-index:5000;'><a class='btn btn-link pos-right-top fontsize-lg' style='z-index:9999;padding:10px;' onclick=\"$('#_popoverbox').trigger('close');\"><i class='fa fa-remove'></i></a><div id='content' class='bg-white ${scroller}' style='z-index:0' ></div></div>";
+	$("body").addClass("noscroll mpopover-enabled").append(juicer(tpl, config)), config.blockui && showBlockui({
+		zindex: 4999
+	});
+	var box = $("#_popoverbox");
+	runScript(config.onShow, box);
+	var _onClose = function() {
+		config.blockui && hideBlockui("fadeOut"), box.trigger("afterclose"), box.remove(), runScript(config.onClose, box), $(
+			"body").hasClass("mpopover-enabled") && setTimeout((function() {
+			$("body").removeClass("noscroll mpopover-enabled")
+		}), 500)
+	};
+	box.css(config), box.on("close", (function(e) {
+		setTimeout((function() {
+			config.slideUp ? box.animate({
+				bottom: -mh - 50
+			}, (function() {
+				_onClose()
+			})) : config.slideDown ? box.animate({
+				top: -mh - 50
+			}, (function() {
+				_onClose()
+			})) : config.slideLeft ? box.animate({
+				left: -mw - 50
+			}, (function() {
+				_onClose()
+			})) : config.slideRight ? box.animate({
+				right: -mw - 50
+			}, (function() {
+				_onClose()
+			})) : _onClose()
+		}), 0)
+	}));
+	var nleft = 0,
+		ntop = 0;
+	config.top + box.height() > $(window).height() && (ntop = $(window).height() - box.height() - 10, box.css({
+		top: ntop
+	})), config.left + box.width() > $(window).width() && (nleft = $(window).width() - box.width(), box.css({
+		left: nleft
+	}));
+	var c = box.find("#content");
+	return setTimeout((function() {
+		config.slideUp ? box.animate({
+			bottom: 0
+		}, (function() {})) : config.slideDown ? box.animate({
+			top: 0
+		}, (function() {})) : config.slideLeft ? box.animate({
+			left: 0
+		}, (function() {})) : config.slideRight && box.animate({
+			right: 0
+		}, (function() {}))
+	}), 0), c
+}
+
+function removePopover() {
+	mPopover("close")
+}
+var _tplRenderCache = {},
+	_curActiveRow;
+
+function renderPage(thePage, tplname, data, misstpllang, success, fail) {
+	if (thePage) {
+		var lg = "";
+		$.isFunction(misstpllang) ? fail = success = misstpllang : !0 !== misstpllang && (lg = getTemplateLang()),
+			_tplRenderCache[tplname = tplname || ""] || (_tplRenderCache[tplname] = juicer(getAppTemplate()[tplname]));
+		var html = _tplRenderCache[tplname].render(data) || "";
+		thePage.html(html.replace(/http\:\/\//g, location.protocol + "//")), 
+		setTimeout((function() {
+			setRenderAction(thePage, success, fail)
+		}), 0)
+	}
+}
+
+function setRenderAction(thePage, success, fail) {
+	try {
+		if (thePage.find("[data-captcha]").length > 0 && updateCaptcha(thePage), thePage.find(".form-group").each((function() {
+				var thefgrp = $(this);
+				$(this).find(".single-checkbox").on("click", (function() {
+					$(this).parents(".form-group").find(":checked").removeAttr("checked"), $(this).parents(
+							".single-checkbox-group") && $(this).parents(".single-checkbox-group").find(":checked").removeAttr(
+							"checked"), $(this).find("[type=checkbox]").get(0).checked = !0, $("#" + $(this).data("followfield")).length >
+						0 && (thePage.find(".followfield").hide().val(""), $("#" + $(this).data("followfield")).addClass(
+							"followfield").show().find("textarea").focus())
+				}))
+			})), thePage.find(".single-check-group").each((function() {
+				var thefgrp = $(this);
+				thefgrp.find(":checkbox").on("click", (function() {
+					thefgrp.find(":checkbox:checked").removeAttr("checked"), this.checked = !0
+				}))
+			})), thePage.find(".multi-check-limit-3").each((function() {
+				var thefgrp = $(this);
+				thefgrp.find(":checkbox").on("click", (function() {
+					if (thePage.find(".multi-check-limit-3 :checkbox").clearElmTips(), thefgrp.find(":checkbox:checked").length >
+						3) return $(this).elmTips(lng("限選3個", " Escolha múltipla (Limite 3)", "Multi choice (Limit 3)")), $(this).removeAttr(
+						"checked"), !1
+				}))
+			})), thePage.find("input[max=]").each((function() {
+				"DATE" != $(this).attr("type") && $(this).on("blur", (function(e) {
+					var min = parseFloat($(this).attr("min") || ""),
+						max = parseFloat($(this).attr("max") || ""),
+						val = parseFloat($(this).val() || "");
+					return val > max && NaN !== max ? ($(this).elmTips("max=" + max), $(this).focus().select(), !1) : val < min &&
+						NaN !== min ? ($(this).elmTips("min=" + min), $(this).focus().select(), !1) : void $(this).clearElmTips()
+				}))
+			})), thePage.find("label[required]").append("<b class='text-danger'>*</b>"), thePage.find(":input[mask]").each((
+				function() {
+					"" !== $.trim($(this).attr("mask")) && $(this).mask($(this).attr("mask").trim())
+				})), thePage.find("input[type=number],[onlynumber],.numeric-only").on("keypress", (function(e) {
+				var theEvent = e || window.event,
+					key = theEvent.keyCode || theEvent.which,
+					regex;
+				key = String.fromCharCode(key), /[0-9]/.test(key) || (theEvent.returnValue = !1, theEvent.preventDefault &&
+					theEvent.preventDefault())
+			})), thePage.find(".numeric").on("keypress", (function(e) {
+				var theEvent = e || window.event,
+					key = theEvent.keyCode || theEvent.which,
+					regex;
+				key = String.fromCharCode(key), /[0-9]|\./.test(key) || (theEvent.returnValue = !1, theEvent.preventDefault &&
+					theEvent.preventDefault())
+			})), thePage.find("[role='pdfdialog']").on("click", (function(e) {
+				e.preventDefault();
+				var elm = $(this),
+					url = elm.attr("href") || "";
+				if ("" == url) return !1;
+				var title = elm.attr("title") || "";
+				return "" == title && (title = "Dialog"), new dialog({
+					title: title,
+					width: $(window).width() - 50,
+					height: $(window).height() - 10,
+					scroller: !1,
+					loading: !0,
+					keyboard: !0,
+					external: !0,
+					url: url,
+					onShow: function(my, ui) {
+						elm.removeClass("disabled")
+					},
+					onClose: function() {
+						elm.removeClass("disabled")
+					}
+				}), !1
+			})), thePage.find(".richedit").length > 0) try {
+			setRichEdit(thePage)
+		} catch(e) {}
+		thePage.find("[data-provide='datepicker']").each((function() {
+			var input = $(this).find("input");
+			0 == input.length && (input = $(this).find(".date-input"));
+			var dateFormat = $.trim(input.data("date-format") || ""),
+				datesDisabled = $.trim(input.data("dates-disabled") || ""),
+				orientation = $.trim(input.data("orientation") || ""),
+				startDate = $.trim(input.data("date-start-date") || ""),
+				endDate = $.trim(input.data("date-end-date") || ""),
+				maxViewMode = input.data("maxviewmode") || 0,
+				minViewMode = input.data("minviewmode") || 0,
+				daysOfWeekHighlighted = input.data("daysOfWeekHighlighted") || "",
+				autoclose = input.data("autoclose") || !0,
+				toggleActive = input.data("toggle-active") || !0,
+				clearBtn = input.data("clear-btn") || !1,
+				todayBtn = input.data("today-btn") || !1,
+				todayHighlight = input.data("today-highlight") || !0,
+				showDayClass = input.data("showdayclass"),
+				showMonthClass = input.data("showmonthclass"),
+				showYearClass = input.data("showyearclass"),
+				title = input.data("title"),
+				langOptions, dateOptions = {
+					language: {
+						ch: "zh-TW",
+						en: "en-GB",
+						pt: "pt"
+					} [getAppConfig().lang],
+					daysOfWeekHighlighted: "" !== daysOfWeekHighlighted ? daysOfWeekHighlighted : "0,6",
+					todayHighlight: todayHighlight,
+					autoclose: autoclose,
+					toggleActive: toggleActive,
+					clearBtn: clearBtn,
+					todayBtn: "" === todayBtn || todayBtn,
+					format: "" !== dateFormat ? dateFormat : "dd/mm/yyyy",
+					datesDisabled: datesDisabled.split(","),
+					orientation: orientation,
+					startView: 0,
+					weekStart: 0,
+					startDate: startDate,
+					endDate: endDate,
+					maxViewMode: maxViewMode,
+					minViewMode: minViewMode,
+					title: title,
+					beforeShowDay: function(date) {
+						if ("" !== showDayClass) return {
+							tooltip: "",
+							classes: showDayClass
+						}
+					},
+					beforeShowMonth: function(date) {
+						if ("" !== showMonthClass) return {
+							tooltip: "",
+							classes: showMonthClass
+						}
+					},
+					beforeShowYear: function(date) {
+						if ("" !== showYearClass) return {
+							tooltip: "",
+							classes: showYearClass
+						}
+					}
+				};
+			$(this).is("[startdate]") && (dateOptions.startDate = $(this).attr("startdate")), $(this).is("[enddate]") && (
+				dateOptions.endDate = $(this).attr("enddate")), $(this).datepicker(dateOptions)
+		})), thePage.find("[data-provide='datetimepicker']").each((function() {
+			var input = $(this).find("input");
+			0 == input.length && (input = $(this).find(".date-input"));
+			var dateFormat = $.trim(input.data("date-format") || ""),
+				datesDisabled = $.trim(input.data("dates-disabled") || ""),
+				orientation = $.trim(input.data("orientation") || ""),
+				startDate = $.trim(input.data("date-start-date") || ""),
+				endDate = $.trim(input.data("date-end-date") || ""),
+				maxViewMode = input.data("maxviewmode") || 0,
+				minViewMode = input.data("minviewmode") || 0,
+				daysOfWeekHighlighted = input.data("daysOfWeekHighlighted") || "",
+				autoclose = input.data("autoclose") || !0,
+				toggleActive = input.data("toggle-active") || !0,
+				clearBtn = input.data("clear-btn") || !1,
+				todayBtn = input.data("today-btn") || !1,
+				todayHighlight = input.data("today-highlight") || !0,
+				showDayClass = input.data("showdayclass"),
+				showMonthClass = input.data("showmonthclass"),
+				showYearClass = input.data("showyearclass"),
+				title = input.data("title"),
+				langOptions, dateOptions = {
+					language: {
+						ch: "zh-TW",
+						en: "en-GB",
+						pt: "pt"
+					} [getAppConfig().lang],
+					daysOfWeekHighlighted: "" !== daysOfWeekHighlighted ? daysOfWeekHighlighted : "0,6",
+					todayHighlight: todayHighlight,
+					autoclose: autoclose,
+					toggleActive: toggleActive,
+					clearBtn: clearBtn,
+					todayBtn: "" === todayBtn || todayBtn,
+					format: "" !== dateFormat ? dateFormat : "dd/mm/yyyy",
+					datesDisabled: datesDisabled.split(","),
+					orientation: orientation,
+					startView: 0,
+					weekStart: 0,
+					startDate: startDate,
+					endDate: endDate,
+					maxViewMode: maxViewMode,
+					minViewMode: minViewMode,
+					title: title,
+					beforeShowDay: function(date) {
+						if ("" !== showDayClass) return {
+							tooltip: "",
+							classes: showDayClass
+						}
+					},
+					beforeShowMonth: function(date) {
+						if ("" !== showMonthClass) return {
+							tooltip: "",
+							classes: showMonthClass
+						}
+					},
+					beforeShowYear: function(date) {
+						if ("" !== showYearClass) return {
+							tooltip: "",
+							classes: showYearClass
+						}
+					}
+				};
+			$(this).is("[startdate]") && (dateOptions.startDate = $(this).attr("startdate")), $(this).is("[enddate]") && (
+				dateOptions.endDate = $(this).attr("enddate")), $(this).datetimepicker(dateOptions)
+		})), thePage.find(".datagrid").length > 0 && thePage.find(".datagrid").each((function() {
+			var dg = $(this);
+			setTimeout((function() {
+				dg.DataGrid()
+			}), 0)
+		})), thePage.find(".pagination").length > 0 && thePage.find(".pagination").DataGridPager(), thePage.find(
+			"[data-toggle='tooltip']").length > 0 && thePage.find("[data-toggle='tooltip']").each((function() {
+			var html = 1 == $(this).data("html"),
+				template = $(this).data("template");
+			thePage.find("[data-toggle='tooltip']").tooltip()
+		}));
+		try {
+			thePage.GoogleMapClick()
+		} catch(e) {
+			warnme("->RenderPage->GoogleMapError : " + e.message)
+		}
+		try {
+			setSmsVerify()
+		} catch(e) {
+			warnme("->RenderPage->SmsVerifyError : " + e.message)
+		}
+		setTimeout((function() {}), 500), runScript(success, thePage)
+	} catch(e) {
+		runScript(fail, e)
+	}
+}
+
+function setRichEdit(ui) {
+	if (!ui) return !1;
+	$(".Editor-container,#InsertTable,#InsertImage,#InsertLink").remove();
+	var theRichEdit = ui.find(".richedit:visible"),
+		rh = theRichEdit.height(),
+		options = theRichEdit.data("options"),
+		options;
+	(options = {
+		status_bar: !1,
+		insert_img: !1,
+		togglescreen: !1,
+		source: !1
+	}).togglescreen = theRichEdit.data("menu-btn-tooglescreen") || !1, options.insert_img = theRichEdit.data(
+			"menu-btn-insertimg") || !1, options.status_bar = theRichEdit.data("menu-btn-statusbar") || !1, options.source =
+		theRichEdit.data("menu-btn-source") || !1, theRichEdit.Editor(options), $("#menuBarDiv .btn:not(.dropdown-toggle)").css({
+			padding: "9px 12px"
+		}), setTimeout((function() {
+			theRichEdit.Editor("setText", ui.find(".richedit").text())
+		}), 0), theRichEdit.parents(".tab-content").length > 0 && $('a[data-toggle="tab"]').on("shown.bs.tab", (function(e) {
+			var tabpane = $("#" + $(e.target).attr("aria-controls")),
+				rh = tabpane.find(".richedit").height();
+			ui.find(".richedit").each((function() {
+				$(this).text($(this).Editor("getText")), $(this).show()
+			})), tabpane.find(".richedit").Editor({
+				status_bar: !1,
+				insert_img: !1
+			}), tabpane.find("#menuBarDiv .btn:not(.dropdown-toggle)").css({
+				padding: "9px 12px"
+			}), tabpane.find(".richedit").Editor("setText", tabpane.find(".richedit").text()), tabpane.find(".richedit").addClass(
+				"settle")
+		}))
+}
+
+function setModalControlButtons(ui) {
+	ui && ui.find(".control-buttons:visible").length > 0 && ui.find(".modal-footer").empty().append(ui.find(
+		".control-buttons:visible"))
+}
+
+function elmTips(elm, msg, options) {
+	if (elm) {
+		var config = {
+			theme: "label label-danger",
+			styleclass: "",
+			style: "",
+			inner: !1
+		};
+		$.extend(config, options, {
+			msg: msg
+		}), clearElmTips(elm), config.inner ? elm.addClass("pos-relative").append(juicer(
+			"<span class='required-tips ${theme} ${styleclass}' style='${style}'>$${msg}</span>", config)) : elm.after(juicer(
+			"<span class='required-tips ${theme} ${styleclass}' style='${style}'>$${msg}</span>", config))
+	}
+}
+
+function dateTips(elm, msg, options) {
+	if (elm) {
+		var config = {
+			theme: "label label-danger",
+			styleclass: "",
+			style: "",
+			inner: !1
+		};
+		$.extend(config, options, {
+			msg: msg
+		}), clearElmTips(elm), config.inner ? elm.addClass("pos-relative").append(juicer(
+			"<span class='date-tips ${theme} ${styleclass}' style='${style}'>$${msg}</span>", config)) : elm.after(juicer(
+			"<span class='date-tips ${theme} ${styleclass}' style='${style}'>$${msg}</span>", config))
+	}
+}
+
+function clearDateTips(elm) {
+	elm && elm.nextAll(".date-tips").remove()
+}
+
+function clearElmTips(elm) {
+	elm && elm.nextAll(".required-tips").remove()
+}
+
+function clearAllElmTips() {
+	$(".required-tips").remove()
+}
+
+function checkRequiredInputs(thePage) {
+	var scrollToRequiredElm = function() {
+		var container = $("body,html");
+		try {
+			window.self !== window.top && (container = $("body,html", window.parent.document))
+		} catch(e) {
+			container = $("body,html")
+		}
+		scrollToElement($(".required-field:first"), container, 0)
+	};
+	return isok = !0, thePage && (thePage.find(".required-tips").remove(), thePage.find(
+		":input[required]:visible,textarea[required]:visible,div[required]:visible").removeClass(
+		"required-field bordered bordered-danger").each((function() {
+		var elm = $(this);
+		elm.find(":checkbox:visible,:radio:visible").length > 0 ? 0 == elm.find(":checked").length && (isok = !1, elm.addClass(
+				"required-field bordered bordered-danger"), elm.parent("[data-date-format]").length > 0 && (elm = elm.parent(
+				"[data-date-format]")), elmTips(elm, lng("必須填寫", "Preenchimento obrigatório", "Required")), isAndroid &&
+			scrollToRequiredElm()) : "" == $.trim(this.value) && (isok = !1, elm.addClass(
+				"required-field bordered bordered-danger"), elm.parent("[data-date-format]").length > 0 && (elm = elm.parent(
+				"[data-date-format]")), elmTips(elm, lng("必須填寫", "Preenchimento obrigatório", "Required")), isAndroid &&
+			scrollToRequiredElm())
+	})), isok || (thePage.find(".required-field:first").focus(), setParentIframeHeight())), isok
+}
+
+function setSmsVerify() {
+	var fm = $("#fmSmsVerification"),
+		btnVcode = fm.find("#btnResendVerifyCode"),
+		btnVcodeSuccess = fm.find("#btnVerifyCodeSuccess"),
+		txtVcode = fm.find("[name=smsvcode]"),
+		VCountDown = fm.find("#VerifyCodeCountDown"),
+		btnChkVCode = fm.find("#btnCheckSmsVcode"),
+		wait = 60,
+		VerifyCodeCountDown = function(obj) {
+			if (0 == wait) fm.hasClass("verified") || (btnVcode.removeClass("hide").data("vcid", ""), VCountDown.addClass("hide")
+				.removeClass("disabled"), btnChkVCode.addClass("hide").removeClass("disabled")), wait = 60;
+			else {
+				var txt = wait + "秒後重試";
+				txt = "pt" == getAppConfig().lang ? "Repetir após " + wait + " segundos" : "en" == getAppConfig().lang ?
+					"Retry after " + wait + " seconds" : wait + "秒後重試", VCountDown.removeClass("hide").addClass("disabled").text(txt),
+					wait--, setTimeout((function() {
+						VerifyCodeCountDown(obj)
+					}), 1e3)
+			}
+		};
+	btnVcode.off().on("click", (function(e) {
+		e.preventDefault();
+		var theBtn = $(this),
+			mobile = $.trim($("[name=mobile]").val() || "");
+		return 8 != mobile.length ? ($("[name=mobile]").focus().select().elmTips(lng("必須填寫", "Deve ser preenchido",
+			"Required")), !1) : 0 != mobile.indexOf("6") ? ($("[name='mobile']").focus().select().elmTips(lng(
+			"開始必須為'6'且為8位數字的且必須能接收本澳短訊的電話", "O número de telemóvel deve ter 8 dígitos e iniciar com um 6.",
+			"The mobile phone number must be an 8-digit number beginning with 6!")), !1) : !theBtn.hasClass("hide") && (
+			theBtn.addClass("hide"), txtVcode.val("").focus().clearElmTips(), void CommonApi.Sms.sendVerifyCode({
+				app_appid: $("[name='smsappid']").val() || "",
+				mobile: $("[name=mobile]").val(),
+				smslang: appconfig.lang
+			}, (function(rt) {
+				logme(rt), "success" == rt.result ? (theBtn.data("vcid", rt.vcid), VerifyCodeCountDown(this)) : theBtn.removeClass(
+					"hide")
+			})))
+	})), txtVcode.off().on("blur", (function(e) {
+		if (e.preventDefault(), "" == $.trim($(this).val()) || 60 == wait) return txtVcode.clearElmTips(), !1;
+		var vcid = btnVcode.data("vcid") || "",
+			vcode = $(this).val() || "";
+		"" !== vcid && (logme(vcid), CommonApi.Sms.checkVerifyCode({
+			vcid: vcid,
+			vcode: vcode
+		}, (function(rt) {
+			logme(rt), wait = 0, "success" == rt.result ? (txtVcode.attr("readonly", !0).clearElmTips(), btnVcode.addClass(
+					"hide"), btnVcodeSuccess.removeClass("hide"), btnChkVCode.addClass("hide"), VCountDown.addClass("hide"),
+				fm.addClass("verified")) : (VCountDown.addClass("hide").removeClass("disabled"), btnVcode.removeClass(
+				"hide").data("vcid", ""), txtVcode.focus().select().elmTips(lng("驗證碼錯誤", "Erro no código de verificação",
+				"Verification code error"), {
+				bg: "bg-red text-white"
+			}))
+		})))
+	}))
+}
+
+function checkCaptcha(thePage) {
+	var isok = !0;
+	return $("#txtcaptcha").val() != $("#txtcaptcha").data("captcha") && ($("#err_captcha").show(), setTimeout((function() {
+		$("#err_captcha").fadeOut()
+	}), 2e3), $("#txtcaptcha").focus(), isok = !1), isok
+}
+
+function updateCaptcha(c, success) {
+	getCaptchaData((function(rt) {
+		var thePage = c || getCurPage();
+		thePage.find("#captcha_container").html(juicer(getAppTemplate().uc_captcha, $.extend(getAppConfig(), {
+			captcha: rt.captcha
+		}))), thePage.find("#imgcaptcha").click((function(e) {
+			updateCaptcha(thePage)
+		})), runScript(success)
+	}))
+}
+
+function getActiveEditRow() {
+	return _curActiveRow
+}
+
+function setActiveEditRow(myrow) {
+	_curActiveRow = myrow
+}
+
+function deleteActiveEditRow(delay) {
+	var myrow = getActiveEditRow();
+	myrow && (delay ? myrow.addClass("bg-lightred").slideUp(delay, (function() {
+		myrow.remove()
+	})) : myrow.remove())
+}
+
+function updateActiveEditRow(tplname, data) {
+	var myrow = getActiveEditRow(),
+		newrow = $(juicer(getAppTemplate()[tplname], data)).insertAfter(myrow);
+	newrow.addClass("bg-lightred"), myrow.remove(), setTimeout((function() {
+		newrow.removeClass("bg-lightred")
+	}), 1500)
+}
+
+function newActiveRow(tplname, data) {
+	var myrow = getActiveEditRow(),
+		newrow = $(juicer(getAppTemplate()[tplname], data)).insertAfter(myrow);
+	newrow.addClass("bg-lightred"), setTimeout((function() {
+		newrow.removeClass("bg-lightred")
+	}), 1500)
+}
+
+function changeStatusIcon(elm, chkstatus) {
+	var status;
+	elm && (elm.data("status") == chkstatus ? elm.data("status", "").html(
+		"<i class='fa fa-check fa-lg text-lightgray'></i>") : elm.data("status", chkstatus).html(
+		"<i class='fa fa-check fa-lg text-success'></i>"))
+}
+
+function setUploadOneImage(myUploadForm, success, fail) {
+	var uploadfileid, onUploadDone = function(data) {
+			removeAllSpinner(), myUploadForm.find("#txtFile").val("").show().removeClass("disabled");
+			try {
+				var data;
+				if ("success" != (data = $.parseJSON($.trim(data))).result) throw data;
+				data.icon = "data:image/png;base64," + data.icon, 0 == $("#imguploadsrc").length && myUploadForm.append(
+						"<input  type='hidden'  id='imguploadsrc' name='imguploadsrc'>"), $("#imguploadsrc").val(data.icon), logme(data),
+					runScript(success, data), myUploadForm.trigger("upload.done", data)
+			} catch(ex) {
+				logme(ex), smalltips("Upload fail!", {
+					bg: "bg-red"
+				}), myUploadForm.trigger("upload.fail", ex), runScript(fail, ex)
+			}
+			myUploadForm.find("#txtFile").removeClass("disabled")
+		},
+		onSelectFileSuccess = function(filename) {
+			var item = {
+				savefile: filename,
+				orgfile: filename,
+				uploadfileid: uploadfileid = "tmpfile" + getUUID().replace(/-/g, ""),
+				isupload: !0
+			};
+			myUploadForm.trigger("upload.file.selected", item), setTimeout((function() {
+				myUploadForm.trigger("submit")
+			}), 0)
+		};
+	myUploadForm.find("#btnSubmit").off("submit").on("submit", (function(e) {
+		if ("" == $(this).find(":file").val()) return smalltips("沒有選到檔案!"), !1
+	})), myUploadForm.find("#txtFile").off("change").on("change", (function(e) {
+		$(this).addClass("disabled").hide().after("<div id='uploading'></div>"), $("#uploading").loadingSpinner(
+			"上載中......");
+		var filename = myUploadForm.find("#txtFile").val();
+		return runScript(onSelectFileSuccess, getFileName(filename)), !1
+	})).off("click").on("click", (function(e) {}));
+	var iupload = myUploadForm.find("#" + myUploadForm.attr("target"));
+	0 == iupload.length && (iupload = myUploadForm.find("[name='" + myUploadForm.attr("target") + "']")), isIE8 ? iupload.ready(
+		(function(e) {
+			var resultText = $(this).contents().find("body").text();
+			"" != resultText && onUploadDone(resultText)
+		})) : iupload.off("load").on("load", (function(e) {
+		var resultText = $(this).contents().find("body").text();
+		"" != resultText && onUploadDone(resultText)
+	}))
+}
+$.fn.renderPage = function(tplname, data, misstpllang, success, fail) {
+	return this.each((function() {
+		renderPage($(this), tplname, data, misstpllang, success, fail)
+	}))
+}, $.fn.elmTips = function(msg, options) {
+	return this.each((function() {
+		elmTips($(this), msg, options)
+	}))
+}, $.fn.dateTips = function(msg, options) {
+	return this.each((function() {
+		dateTips($(this), msg, options)
+	}))
+}, $.fn.clearElmTips = function(all) {
+	return this.each((function() {
+		all ? clearAllElmTips() : clearElmTips($(this))
+	}))
+};
+var dgSelectedItemArray = [],
+	dgChk;
+
+function dgChecker(c) {
+	var container = c,
+		self = this;
+	this.length = dgSelectedItemArray.length, this.onItemSelect = function(elm, rowid, checked) {
+		checked ? dgSelectedItemArray.indexOf(rowid) < 0 && (dgSelectedItemArray.push(rowid), container.trigger(
+			"item-checked", [rowid])) : (self.removeItem(rowid), container.trigger("item-unchecked", [rowid]))
+	}, this.setSelectItemAll = function(elm, c) {
+		if (container || c && (container = c), container) {
+			var arrSelected = [],
+				checked = elm.prop("checked");
+			container.find("[name=chk]").prop("checked", checked), container.find("[name=chk]").each((function() {
+				$(this).prop("checked", checked);
+				var rowid = $(this).val();
+				arrSelected.push(rowid), self.onItemSelect($(this), rowid, checked)
+			})), container.trigger("selectall", [arrSelected, dgSelectedItemArray])
+		}
+	}, this.setSelectItem = function(elm, rowid, c) {
+		if (container || c && (container = c), container) {
+			container.find("[name=chkall]").prop("checked", !1);
+			var checked = elm.prop("checked");
+			self.onItemSelect(elm, rowid, checked), container.trigger("select", [rowid])
+		}
+	}, this.init = function() {
+		dgSelectedItemArray = []
+	}, this.removeItem = function(rowid) {
+		for (var ar = dgSelectedItemArray, i = ar.length - 1; i >= 0; i--) ar[i] === rowid && ar.splice(i, 1);
+		dgSelectedItemArray = ar
+	}, this.addItem = function(rowid) {
+		dgSelectedItemArray.push(rowid)
+	}, this.setContainer = function(c) {
+		container = c
+	}
+}
+
+function setHitCount(postid) {
+	try {
+		$("body").append("<iframe src='?f=SetHitCount&postid=" + postid +
+			"&ishitcount=true' name='Ihitcount' id='Ihitcount' class='hide' style='display:none'></iframe>"), setTimeout((
+			function() {
+				$("#id").remove()
+			}), 100)
+	} catch(e) {
+		logme(e.message)
+	}
+}
+$.fn.ExternalLink = function(url, title, options) {
+	return url = url || "", title = title || "", this.each((function() {
+		new dialog($.extend({
+			title: title,
+			width: $(window).width() - 80,
+			height: $(window).height() - 200,
+			external: !0,
+			url: url
+		}, options))
+	}))
+}, $.fn.scrollTo = function(target, options, callback) {
+	"function" == typeof options && 2 == arguments.length && (callback = options, options = target);
+	var settings = $.extend({
+		scrollTarget: target,
+		offsetTop: 50,
+		duration: 500,
+		easing: "swing"
+	}, options);
+	return this.each((function() {
+		var scrollPane = $(this),
+			scrollTarget, scrollTop = ("string" == typeof settings.scrollTarget ? settings.scrollTarget : $(settings.scrollTarget))
+			.offset().top + scrollPane.scrollTop() - parseInt(settings.offsetTop);
+		scrollPane.animate({
+			scrollTop: scrollTop
+		}, parseInt(settings.duration), settings.easing, (function() {
+			"function" == typeof callback && callback.call(this)
+		}))
+	}))
+}, $.fn.requiredInput = function() {
+	$(this).addClass("bordered bordered-danger").focus();
+	var p = $(this).offset();
+	showTips(p.left, p.top, getMsg("requiredinout"), !0)
+}, $.fn.hightlight = function(search) {
+	return this.each((function() {
+		for (k in aSearch = search.split(","), aSearch) $(this).texthighlight(aSearch[k])
+	}))
+}, $.fn.uploadFile = function(options, success, done, fail) {
+	var config = {
+			url: "",
+			debug: !1
+		},
+		container = $(this);
+	return this.each((function() {
+		var id = "_uploadfile" + +new Date,
+			iframeid = "I" + id,
+			sformtpl =
+			"<form id='${id}_form' action='${url}' target='${iframeid}' method='post' enctype='multipart/form-data' class='form' ><input type='file' id='${id}' name='${id}' class='form-control' multiple='multiple'><input type='submit' class='form-control hide'><iframe id='${iframeid}' name='${iframeid}' class='{@if !debug}hide{@/if}'></iframe></form>";
+		container || (container = $("body")), "string" == typeof options ? config.url = options : config = $.extend(
+			config, options), container.append(juicer(sformtpl, {
+			id: id,
+			url: config.url,
+			iframeid: iframeid,
+			debug: config.debug
+		}));
+		var myForm = $("#" + id + "_form");
+		myForm.on("submit", (function(e) {
+			if ("" == $(this).find(":file").val()) return smalltips("沒有選到檔案!"), !1
+		})).find("#" + id).on("change", (function(e) {
+			var files = this.files;
+			try {
+				runScript(success, files)
+			} catch(e) {
+				runScript(success, [{
+					filename: getFileName($(this).val())
+				}])
+			}
+			myForm.trigger("submit")
+		})), myForm.find("#" + iframeid).on("load", (function(e) {
+			try {
+				var resultText = $.trim($(this).contents().find("body").text() || "");
+				if ("" !== resultText) {
+					var resultJson = {};
+					try {
+						resultJson = $.parseJSON(resultText)
+					} catch(e) {
+						logme("Upload parseJson Fail!")
+					}
+					runScript(done, resultText, resultJson)
+				}
+			} catch(e) {
+				logme(e.message), runScript(fail, e)
+			}
+		}))
+	}))
+};
+var Progress = {
+	create: function(options) {
+		var progressOptions = {
+			styleClass: "z-index:9000;margin-left:-200px;margin-top:-60px",
+			pos: "pos-center-middle filter-shadow-lg bordered hide",
+			width: 400,
+			min: 0,
+			max: 100,
+			percentage: 0,
+			id: "importprogress",
+			title: ""
+		};
+		$.extend(progressOptions, options), $("body").append(juicer(getAppTemplate().uc_progressbar, progressOptions))
+	},
+	setStep: function(cpos, plen) {
+		var percentage = Math.ceil(cpos / plen * 100);
+		$("#importprogress").removeClass("hide").find(".progress-bar").css({
+			width: percentage + "%"
+		}).text(percentage + "%")
+	},
+	setText: function(s) {
+		$("#importprogress .progress-bar").text(s || "")
+	},
+	remove: function() {
+		$("#importprogress").remove()
+	}
+};
